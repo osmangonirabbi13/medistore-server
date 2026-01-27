@@ -3,7 +3,7 @@ import express, { Request, Response } from "express";
 import { sellerRouter } from "./Seller/seller.routes";
 import { auth } from "./lib/auth";
 import cors from "cors";
-import { catalogRouter } from "./Category/catalog.routes";
+import { categoryRouter } from "./Category/category.routes";
 
 const app = express();
 
@@ -20,7 +20,7 @@ app.use(express.json());
 
 app.use("/api/seller", sellerRouter);
 
-app.use("/api/category" , catalogRouter)
+app.use("/api/category" , categoryRouter)
 
 app.get("/", (req: Request, res: Response) => {
   res.send("hello world");
