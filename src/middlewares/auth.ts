@@ -77,7 +77,7 @@ const auth = (...roles: Role[]) => {
 
       next();
     } catch (err) {
-      next(err);
+      next(err) ;
     }
   };
 };
