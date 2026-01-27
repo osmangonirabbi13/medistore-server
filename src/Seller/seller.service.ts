@@ -75,8 +75,35 @@ const updateMedicine = async (
   return result;
 };
 
+
+const deleteMedicine = async (
+  medicineId: string,
+  userId: string,
+) => {
+  
+  const medicine = await prisma.medicine.findUnique({
+    where: { id: medicineId },
+    select: { id: true, sellerId: true },
+  });
+
+  if (!medicine) {
+    throw new Error("Medicine not found");
+  }
+
+  if (medicine.sellerId !== userId) {
+    throw new Error("Forbidden! You cannot delete this medicine.");
+  }
+
+  const result = await prisma.medicine.delete({
+    where: { id: medicineId },
+  });
+
+  return result;
+};
+
 export const ServiceController = {
   createMedicine,
   createSeller,
   updateMedicine,
+  deleteMedicine
 };

@@ -84,8 +84,38 @@ const updateMedicine = async (req: Request, res: Response) => {
   }
 };
 
+const deleteMedicine = async (req : Request , res : Response) =>{
+  try {
+
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { id } = req.params;
+
+    const data = await ServiceController.deleteMedicine(id as string, userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Medicine delete successfully",
+      data,
+    });
+    
+  } catch (err : any) {
+    return res.status(404).json({
+      success: false,
+      message: err.message || "Medicine Delete failed",
+    });
+  }
+}
+
 export const SellerController = {
   createMedicine,
   createSeller,
   updateMedicine,
+  deleteMedicine
 };

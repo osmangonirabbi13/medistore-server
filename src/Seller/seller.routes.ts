@@ -8,5 +8,6 @@ router.post("/become-seller", auth(), SellerController.createSeller);
 
 router.post("/medicines", auth("SELLER"), SellerController.createMedicine);
 router.put("/medicines/:id", auth("SELLER"), SellerController.updateMedicine);
+router.delete("/medicines/:id", auth("SELLER"), SellerController.deleteMedicine);
 
 export const sellerRouter: Router = router;

@@ -37,7 +37,7 @@ const getAllMedicine = async (req: Request, res: Response) => {
 
 const getMedicineById = async (req: Request, res: Response) => {
   try {
-    console.log("GET MEDICINE BY ID HIT");
+    
 
     const { id } = req.params;
 

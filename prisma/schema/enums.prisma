@@ -1,5 +1,3 @@
-
-
 enum Role {
   CUSTOMER
   SELLER

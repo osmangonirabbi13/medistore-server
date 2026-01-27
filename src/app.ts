@@ -5,7 +5,7 @@ import { auth } from "./lib/auth";
 import cors from "cors";
 import { categoryRouter } from "./Category/category.routes";
 import { productRoute } from "./Product/product.routes";
-
+import { orderRouter } from "./order/order.routes";
 
 const app = express();
 
@@ -20,11 +20,13 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
 
-app.use("/api/medicines" , productRoute)
+app.use("/api/medicines", productRoute);
 
 app.use("/api/seller", sellerRouter);
 
 app.use("/api/categories", categoryRouter);
+
+app.use("/api/orders", orderRouter);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("hello world");
