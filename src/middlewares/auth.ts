@@ -3,7 +3,6 @@ import { auth as betterAuth } from "../lib/auth";
 import { prisma } from "../lib/prisma";
 import { Role } from "../../generated/prisma/enums";
 
-
 declare global {
   namespace Express {
     interface Request {
@@ -21,10 +20,11 @@ declare global {
 const auth = (...roles: Role[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-     
       const session = await betterAuth.api.getSession({
         headers: req.headers as any,
       });
+
+      console.log(session);
 
       if (!session) {
         return res.status(401).json({
@@ -40,10 +40,11 @@ const auth = (...roles: Role[]) => {
         });
       }
 
-   
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
       });
+
+      console.log(user);
 
       if (!user) {
         return res.status(404).json({
@@ -59,7 +60,6 @@ const auth = (...roles: Role[]) => {
         });
       }
 
-  
       req.user = {
         id: user.id,
         email: user.email,
@@ -68,7 +68,6 @@ const auth = (...roles: Role[]) => {
         emailVerified: user.emailVerified,
       };
 
-     
       if (roles.length && !roles.includes(user.role)) {
         return res.status(403).json({
           success: false,

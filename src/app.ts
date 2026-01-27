@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 import { sellerRouter } from "./Seller/seller.routes";
 import { auth } from "./lib/auth";
 import cors from "cors";
+import { catalogRouter } from "./Category/catalog.routes";
 
 const app = express();
 
@@ -18,6 +19,8 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 
 app.use("/api/seller", sellerRouter);
+
+app.use("/api/category" , catalogRouter)
 
 app.get("/", (req: Request, res: Response) => {
   res.send("hello world");
