@@ -1,6 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { MedicineWhereInput } from '../../generated/prisma/models';
-
+import { MedicineWhereInput } from "../../generated/prisma/models";
 
 const getAllMedicine = async ({
   search,
@@ -10,7 +9,7 @@ const getAllMedicine = async ({
   sortBy,
   sortOrder,
 }: {
-    search: string | undefined;
+  search: string | undefined;
   page: number;
   limit: number;
   skip: number;
@@ -19,7 +18,6 @@ const getAllMedicine = async ({
 }) => {
   const andConditions: MedicineWhereInput[] = [];
 
-  
   if (search) {
     andConditions.push({
       OR: [
@@ -39,7 +37,6 @@ const getAllMedicine = async ({
     });
   }
 
-  
   const allowedSortFields = ["stock", "price", "categoryId", "isActive"];
 
   const finalSortBy = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
@@ -103,7 +100,44 @@ const getMedicineById = async (id: string) => {
   return medicine;
 };
 
+const getMyMedicine = async (sellerId: string) => {
+
+  console.log(sellerId);
+  await prisma.user.findUniqueOrThrow({
+    where: {
+      id: sellerId,
+      isBanned: false,
+    },
+    select: {
+      id: true,
+    },
+  });
+  const result = await prisma.medicine.findMany({
+    where: {
+      sellerId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  const total = await prisma.medicine.aggregate({
+    _count: {
+      id: true,
+    },
+    where: {
+      sellerId,
+    },
+  });
+
+  return {
+    data: result,
+    total,
+  };
+};
+
 export const ProductService = {
   getMedicineById,
   getAllMedicine,
+  getMyMedicine,
 };

@@ -1,5 +1,7 @@
-import { Medicine } from "../../generated/prisma/client";
+import { Medicine, Prisma } from "../../generated/prisma/client";
 import { prisma } from "../lib/prisma";
+
+type UpdateMedicinePayload = Prisma.MedicineUpdateInput;
 
 const createSeller = async (userId: string, pharmacyName: string) => {
   console.log(userId);
@@ -42,7 +44,39 @@ const createMedicine = async (
   return result;
 };
 
+const updateMedicine = async (
+  medicineId: string,
+  userId: string,
+  payload: UpdateMedicinePayload,
+) => {
+  
+  const medicine = await prisma.medicine.findUnique({
+    where: { id: medicineId },
+    select: { id: true, sellerId: true },
+  });
+
+  if (!medicine) {
+    throw new Error("Medicine not found");
+  }
+
+  
+  if (medicine.sellerId !== userId) {
+    throw new Error("Forbidden! You cannot update this medicine.");
+  }
+
+
+  const { id, sellerId, createdAt, updatedAt, ...safeData } = payload as any;
+
+  const result = await prisma.medicine.update({
+    where: { id: medicineId },
+    data: safeData,
+  });
+
+  return result;
+};
+
 export const ServiceController = {
   createMedicine,
   createSeller,
+  updateMedicine,
 };

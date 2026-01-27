@@ -24,7 +24,7 @@ const auth = (...roles: Role[]) => {
         headers: req.headers as any,
       });
 
-      console.log(session);
+   
 
       if (!session) {
         return res.status(401).json({
@@ -44,7 +44,7 @@ const auth = (...roles: Role[]) => {
         where: { id: session.user.id },
       });
 
-      console.log(user);
+      
 
       if (!user) {
         return res.status(404).json({

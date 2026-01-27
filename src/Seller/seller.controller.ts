@@ -42,7 +42,8 @@ export const createSeller = async (req: Request, res: Response) => {
 const createMedicine = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (!userId)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const data = await ServiceController.createMedicine(req.body, userId);
     console.log(data);
@@ -56,7 +57,35 @@ const createMedicine = async (req: Request, res: Response) => {
   }
 };
 
+const updateMedicine = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { id } = req.params;
+
+    const data = await ServiceController.updateMedicine(id as string, userId, req.body);
+
+    return res.status(200).json({
+      success: true,
+      message: "Medicine updated successfully",
+      data,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Medicine update failed",
+    });
+  }
+};
+
 export const SellerController = {
   createMedicine,
   createSeller,
+  updateMedicine,
 };

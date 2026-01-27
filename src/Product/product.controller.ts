@@ -5,11 +5,11 @@ import paginationSortingHelper from "../helpers/paginationSortingHelper";
 const getAllMedicine = async (req: Request, res: Response) => {
   try {
     const { search } = req.query;
-    const searchString =
-      typeof search === "string" ? search : undefined;
+    const searchString = typeof search === "string" ? search : undefined;
 
-    const { page, limit, skip, sortBy, sortOrder } =
-      paginationSortingHelper(req.query);
+    const { page, limit, skip, sortBy, sortOrder } = paginationSortingHelper(
+      req.query,
+    );
 
     const result = await ProductService.getAllMedicine({
       search: searchString,
@@ -35,9 +35,6 @@ const getAllMedicine = async (req: Request, res: Response) => {
   }
 };
 
-
-
-
 const getMedicineById = async (req: Request, res: Response) => {
   try {
     console.log("GET MEDICINE BY ID HIT");
@@ -58,7 +55,30 @@ const getMedicineById = async (req: Request, res: Response) => {
   }
 };
 
+const getMyMedicine = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    console.log(user);
+    if (!user) {
+      throw new Error("You are unauthorized !");
+    }
+
+    const result = await ProductService.getMyMedicine(user.id as string);
+    res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      details: err,
+    });
+  }
+};
+
 export const ProductController = {
   getMedicineById,
-  getAllMedicine
+  getAllMedicine,
+  getMyMedicine,
 };
