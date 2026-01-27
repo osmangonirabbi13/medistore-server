@@ -113,9 +113,32 @@ const deleteMedicine = async (req : Request , res : Response) =>{
   }
 }
 
+const getSellerOrders = async (req: Request, res: Response) => {
+  try {
+    const sellerId = req.user?.id;
+    if (!sellerId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const data = await ServiceController.getSellerOrders(sellerId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Seller orders fetched",
+      data,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to fetch seller orders",
+    });
+  }
+};
+
 export const SellerController = {
   createMedicine,
   createSeller,
   updateMedicine,
-  deleteMedicine
+  deleteMedicine,
+  getSellerOrders
 };

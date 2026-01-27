@@ -4,6 +4,9 @@ import auth from "../middlewares/auth";
 
 const router = Router();
 
+
+router.get("/orders" , auth('SELLER') , SellerController.getSellerOrders)
+
 router.post("/become-seller", auth(), SellerController.createSeller);
 
 router.post("/medicines", auth("SELLER"), SellerController.createMedicine);

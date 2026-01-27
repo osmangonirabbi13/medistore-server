@@ -49,7 +49,6 @@ const updateMedicine = async (
   userId: string,
   payload: UpdateMedicinePayload,
 ) => {
-  
   const medicine = await prisma.medicine.findUnique({
     where: { id: medicineId },
     select: { id: true, sellerId: true },
@@ -59,11 +58,9 @@ const updateMedicine = async (
     throw new Error("Medicine not found");
   }
 
-  
   if (medicine.sellerId !== userId) {
     throw new Error("Forbidden! You cannot update this medicine.");
   }
-
 
   const { id, sellerId, createdAt, updatedAt, ...safeData } = payload as any;
 
@@ -75,12 +72,7 @@ const updateMedicine = async (
   return result;
 };
 
-
-const deleteMedicine = async (
-  medicineId: string,
-  userId: string,
-) => {
-  
+const deleteMedicine = async (medicineId: string, userId: string) => {
   const medicine = await prisma.medicine.findUnique({
     where: { id: medicineId },
     select: { id: true, sellerId: true },
@@ -101,9 +93,24 @@ const deleteMedicine = async (
   return result;
 };
 
+const getSellerOrders = async (sellerId: string) => {
+  const items = await prisma.orderItem.findMany({
+    where: { sellerId },
+    include: {
+      order: true,
+    },
+    orderBy: {
+      order: { placedAt: "desc" },
+    },
+  });
+
+  return items;
+};
+
 export const ServiceController = {
   createMedicine,
   createSeller,
   updateMedicine,
-  deleteMedicine
+  deleteMedicine,
+  getSellerOrders
 };
