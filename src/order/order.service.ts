@@ -194,10 +194,13 @@ const getOrderDetails = async(userId: string, orderId: string)=>{
     return order;
 }
 
+
+
 export const orderService = {
   getMyCart,
   addToCart,
   updateQuantity,
   checkoutFromCart,
-  getOrderDetails
+  getOrderDetails,
+  
 };

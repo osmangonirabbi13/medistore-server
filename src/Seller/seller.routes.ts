@@ -6,6 +6,7 @@ const router = Router();
 
 
 router.get("/orders" , auth('SELLER') , SellerController.getSellerOrders)
+router.patch("/orders/:id" , auth('SELLER') , SellerController.updateSellerOrderStatus)
 
 router.post("/become-seller", auth(), SellerController.createSeller);
 

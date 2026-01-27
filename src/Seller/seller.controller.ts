@@ -135,10 +135,53 @@ const getSellerOrders = async (req: Request, res: Response) => {
   }
 };
 
+const updateSellerOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const sellerId = req.user?.id;
+    if (!sellerId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required",
+      });
+    }
+
+    const updated = await ServiceController.updateSellerOrderStatus(
+      sellerId,
+      id as string,
+      status
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Order status updated",
+      data: updated,
+    });
+  } catch (err: any) {
+    const msg = err.message || "Failed to update";
+    const statusCode =
+      msg === "Order item not found" ? 404 :
+      msg === "Forbidden" ? 403 :
+      400;
+
+    return res.status(statusCode).json({
+      success: false,
+      message: msg,
+    });
+  }
+};
+
 export const SellerController = {
   createMedicine,
   createSeller,
   updateMedicine,
   deleteMedicine,
-  getSellerOrders
+  getSellerOrders,
+  updateSellerOrderStatus
 };

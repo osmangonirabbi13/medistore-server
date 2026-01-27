@@ -1,4 +1,4 @@
-import { Medicine, Prisma } from "../../generated/prisma/client";
+import { Medicine, OrderStatus, Prisma } from "../../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 
 type UpdateMedicinePayload = Prisma.MedicineUpdateInput;
@@ -107,10 +107,32 @@ const getSellerOrders = async (sellerId: string) => {
   return items;
 };
 
+const updateSellerOrderStatus = async (
+  sellerId: string,
+  orderItemId: string,
+  status: OrderStatus,
+) => {
+  const item = await prisma.orderItem.findUnique({
+    where: { id: orderItemId },
+  });
+
+  if (!item) throw new Error("Order item not found");
+
+  if (item.sellerId !== sellerId) throw new Error("Forbidden");
+
+  const updated = await prisma.orderItem.update({
+    where: { id: orderItemId },
+    data: { status },
+  });
+
+  return updated;
+};
+
 export const ServiceController = {
   createMedicine,
   createSeller,
   updateMedicine,
   deleteMedicine,
-  getSellerOrders
+  getSellerOrders,
+  updateSellerOrderStatus,
 };

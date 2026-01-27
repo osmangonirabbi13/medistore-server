@@ -42,6 +42,8 @@ model OrderItem {
   sellerId String
   seller   User   @relation("SellerOrderItems", fields: [sellerId], references: [id], onDelete: Restrict)
 
+  status OrderStatus @default(PLACED)
+
   medicineName String
   imageUrl     String?
   unitPrice    Decimal @db.Decimal(10, 2)
@@ -52,4 +54,5 @@ model OrderItem {
   @@index([orderId])
   @@index([medicineId])
   @@index([sellerId])
+  @@index([status])
 }
