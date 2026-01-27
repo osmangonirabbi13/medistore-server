@@ -20,7 +20,7 @@ app.use(express.json());
 
 app.use("/api/seller", sellerRouter);
 
-app.use("/api/category" , categoryRouter)
+app.use("/api/categories" , categoryRouter)
 
 app.get("/", (req: Request, res: Response) => {
   res.send("hello world");

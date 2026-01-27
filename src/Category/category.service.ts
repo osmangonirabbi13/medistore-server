@@ -1,3 +1,4 @@
+
 import { prisma } from "../lib/prisma";
 
 export type CreateCategoryInput = {
@@ -21,6 +22,14 @@ const createCategory = async (payload: CreateCategoryInput) => {
   });
 };
 
+const getAllCategory = async () => {
+  return await prisma.category.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
 export const CategoryService = {
   createCategory,
+  getAllCategory
 };

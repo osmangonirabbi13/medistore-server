@@ -6,4 +6,6 @@ const router = Router();
 
 router.post("/add-category", auth("SELLER"), CategoryController.createCategory);
 
+router.get("/", CategoryController.getAllCategory);
+
 export const categoryRouter: Router = router;
