@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
+enum SellerRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+}
+
+
+
+model SellerProfile {
+  id            String              @id @default(cuid())
+  userId        String              @unique
+  
+
+  pharmacyName  String
+  licenseNumber String?
+  address       String?
+  status        SellerRequestStatus @default(PENDING)
+  approvedAt    DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+
+  medicines   Medicine[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model Medicine {
+  id            String   @id @default(cuid())
+
+  sellerId      String
+  
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  name          String
+  manufacturer  String?
+  description   String?
+  otcNote       String? 
+
+  price         Decimal  @db.Decimal(10, 2)
+  stock         Int      @default(0)
+
+  imageUrl      String?
+  isActive      Boolean  @default(true)
+
+  cartItems     CartItem[] 
+  orderItems    OrderItem[]
+  reviews       Review[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([price])
+  @@index([manufacturer])
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  customerId      String
+  
+
+  status          OrderStatus   @default(PLACED)
+  paymentMethod   PaymentMethod @default(COD)
+
+  subtotal        Decimal       @db.Decimal(10, 2)
+  shippingFee     Decimal       @db.Decimal(10, 2) @default(0.00)
+  total           Decimal       @db.Decimal(10, 2)
+
+  shippingName        String
+  shippingPhone       String
+  shippingAddressLine1 String
+  shippingAddressLine2 String?
+  shippingCity        String
+  shippingPostalCode  String?
+  shippingCountry     String     @default("Bangladesh")
+
+  placedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           OrderItem[]
+  reviews         Review[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([placedAt])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  medicineId  String
+  medicine    Medicine @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+
+  sellerId    String
+  
+
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  lineTotal   Decimal  @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([medicineId])
+  @@index([sellerId])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+
+  customerId  String
+  medicineId  String
+  medicine    Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+ 
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  rating      Int      
+  comment     String?
+
+  createdAt   DateTime @default(now())
+
+
+  @@unique([customerId, orderId, medicineId])
+  @@index([medicineId])
+  @@index([customerId])
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+ 
+  items     CartItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id         String   @id @default(cuid())
+  cartId     String
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([cartId, medicineId])
+}
