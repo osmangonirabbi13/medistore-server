@@ -6,6 +6,7 @@ import cors from "cors";
 import { categoryRouter } from "./Category/category.routes";
 import { productRoute } from "./Product/product.routes";
 import { orderRouter } from "./order/order.routes";
+import { adminRoute } from "./admin/admin.routes";
 
 const app = express();
 
@@ -19,6 +20,8 @@ app.use(
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
+
+app.use("/api/admin" , adminRoute)
 
 app.use("/api/medicines", productRoute);
 

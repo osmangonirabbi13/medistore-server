@@ -10,6 +10,9 @@ enum SellerRequestStatus {
   REJECTED
 }
 
+
+
+
 enum OrderStatus {
   PLACED
   PROCESSING
