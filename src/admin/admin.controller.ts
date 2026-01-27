@@ -48,7 +48,25 @@ const updateUserBanStatus = async (req: Request, res: Response) => {
   }
 };
 
+const getAdminStats = async (req: Request, res: Response) => {
+  try {
+    const data = await adminService.getStats();
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin stats fetched",
+      data,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to fetch stats",
+    });
+  }
+};
+
 export const adminController = {
   getAllUsers,
-  updateUserBanStatus
+  updateUserBanStatus,
+  getAdminStats
 };

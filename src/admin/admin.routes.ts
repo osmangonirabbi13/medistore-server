@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { adminController } from "./admin.controller";
+import auth from "../middlewares/auth";
 
 
 const router = Router()
 
 router.get("/users" , adminController.getAllUsers)
-router.patch("/users/:id" , adminController.updateUserBanStatus)
+router.get("/stats" , adminController.getAdminStats)
+router.patch("/users/:id" ,auth("ADMIN"), adminController.updateUserBanStatus)
 
 
 export const adminRoute : Router = router

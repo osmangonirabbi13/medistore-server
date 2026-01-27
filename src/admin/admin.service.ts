@@ -35,7 +35,54 @@ const updateUserStatus = async (
   return updated;
 };
 
+const getStats = async () =>{
+    const [
+      totalUsers,
+      bannedUsers,
+      totalOrders,
+      totalMedicines,
+      totalCategories,
+      salesAgg,
+      recentOrders,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { isBanned: true } }),
+      prisma.order.count(),
+      prisma.medicine.count(),
+      prisma.category.count(),
+      prisma.order.aggregate({
+        _sum: { total: true },
+      }),
+      prisma.order.findMany({
+        take: 5,
+        orderBy: { placedAt: "desc" },
+        select: {
+          id: true,
+          customerId: true,
+          status: true,
+          total: true,
+          placedAt: true,
+        },
+      }),
+    ]);
+
+    const totalSales = salesAgg._sum.total ?? 0;
+
+    return {
+      totalUsers,
+      bannedUsers,
+      activeUsers: totalUsers - bannedUsers,
+      totalOrders,
+      totalMedicines,
+      totalCategories,
+      totalSales,
+      recentOrders,
+    };
+  }
+
+
 export const adminService = {
     getAllUsers,
-    updateUserStatus
+    updateUserStatus,
+    getStats
 }
