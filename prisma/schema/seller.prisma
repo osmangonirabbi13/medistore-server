@@ -1,0 +1,18 @@
+// prisma/schema/seller.prisma
+
+model SellerProfile {
+  id            String              @id @default(cuid())
+  userId        String              @unique
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pharmacyName  String
+  licenseNumber String?
+  address       String?
+  status        SellerRequestStatus @default(PENDING)
+  approvedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}

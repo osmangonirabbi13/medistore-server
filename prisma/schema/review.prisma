@@ -1,0 +1,22 @@
+model Review {
+  id String @id @default(cuid())
+
+
+  customerId String
+  customer   User   @relation("CustomerReviews", fields: [customerId], references: [id], onDelete: Restrict)
+
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([customerId, orderId, medicineId])
+  @@index([medicineId])
+  @@index([customerId])
+}

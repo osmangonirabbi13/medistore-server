@@ -1,0 +1,54 @@
+// prisma/schema/order.prisma
+
+model Order {
+  id String @id @default(cuid())
+
+  customerId String
+  customer   User   @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
+
+  status        OrderStatus   @default(PLACED)
+  paymentMethod PaymentMethod @default(COD)
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  shippingFee Decimal @db.Decimal(10, 2) @default(0.00)
+  total       Decimal @db.Decimal(10, 2)
+
+  shippingName         String
+  shippingPhone        String
+  shippingAddressLine1 String
+  shippingAddressLine2 String?
+  shippingCity         String
+  shippingPostalCode   String?
+  shippingCountry      String  @default("Bangladesh")
+
+  placedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items   OrderItem[]
+  reviews Review[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([placedAt])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+
+  sellerId String
+  seller   User   @relation("SellerOrderItems", fields: [sellerId], references: [id], onDelete: Restrict)
+
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  lineTotal Decimal @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([medicineId])
+  @@index([sellerId])
+}

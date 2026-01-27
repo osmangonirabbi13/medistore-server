@@ -1,0 +1,47 @@
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  medicines Medicine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model Medicine {
+  id String @id @default(cuid())
+
+  sellerId String
+  seller   User   @relation("SellerMedicines", fields: [sellerId], references: [id], onDelete: Restrict)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  name         String
+  manufacturer String?
+  description  String?
+  otcNote      String?
+
+  price Decimal @db.Decimal(10, 2)
+  stock Int     @default(0)
+
+  imageUrl String?
+  isActive Boolean @default(true)
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([price])
+  @@index([manufacturer])
+}
