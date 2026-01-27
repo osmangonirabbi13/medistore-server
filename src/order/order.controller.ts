@@ -128,9 +128,37 @@ const checkout = async (req: Request, res: Response) => {
   }
 };
 
+const getOrderDetails = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+
+    const order = await orderService.getOrderDetails(userId, id as string);
+
+    return res.status(200).json({
+      success: true,
+      message: "Order details fetched",
+      data: order,
+    });
+  } catch (err: any) {
+    const msg = err.message || "Failed to fetch order details";
+    const status =
+      msg === "Order not found" ? 404 :
+      msg === "Forbidden" ? 403 :
+      400;
+
+    return res.status(status).json({ success: false, message: msg });
+  }
+};
+
 export const orderController = {
   getMyCart,
   addToCart,
   updateCartQuantity,
   checkout,
+  getOrderDetails
 };

@@ -10,4 +10,6 @@ router.post("/", auth(), orderController.addToCart);
 router.patch("/:id", auth(), orderController.updateCartQuantity);
 router.post("/checkout", auth(), orderController.checkout);
 
+router.get("/:id" ,auth(), orderController.getOrderDetails)
+
 export const orderRouter: Router = router;

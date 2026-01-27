@@ -174,12 +174,30 @@ const checkoutFromCart = async (userId: string, payload: CheckoutPayload) => {
   return order;
 };
 
+const getOrderDetails = async(userId: string, orderId: string)=>{
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: {
+            medicine: true,
+          },
+        },
+      },
+    });
 
+    if (!order) throw new Error("Order not found");
+
+   
+    if (order.customerId !== userId) throw new Error("Forbidden");
+
+    return order;
+}
 
 export const orderService = {
   getMyCart,
   addToCart,
   updateQuantity,
   checkoutFromCart,
-  
+  getOrderDetails
 };
