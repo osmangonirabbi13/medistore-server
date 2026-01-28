@@ -128,6 +128,18 @@ const updateSellerOrderStatus = async (
   return updated;
 };
 
+const approveSeller = async(sellerUserId: string, adminId: string) =>{
+  return prisma.sellerProfile.update({
+      where: { userId: sellerUserId },
+      data: {
+        status: "APPROVED",
+        approvedById: adminId,
+        approvedAt: new Date(),
+        
+      },
+    });
+}
+
 export const ServiceController = {
   createMedicine,
   createSeller,
@@ -135,4 +147,5 @@ export const ServiceController = {
   deleteMedicine,
   getSellerOrders,
   updateSellerOrderStatus,
+  approveSeller
 };

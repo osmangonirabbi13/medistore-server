@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { ServiceController } from "./seller.service";
+import { UserRole } from "../middlewares/auth";
 
 export const createSeller = async (req: Request, res: Response) => {
   try {
@@ -177,11 +178,39 @@ const updateSellerOrderStatus = async (req: Request, res: Response) => {
   }
 };
 
+const approveSeller = async (req: Request, res: Response) => {
+  try {
+    const adminId = req.user?.id;
+    if (!adminId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    if (req.user?.role !== UserRole.ADMIN) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    const { userId } = req.params; 
+    if (!userId) return res.status(400).json({ success: false, message: "userId is required" });
+
+    const data = await ServiceController.approveSeller(userId as string, adminId);
+
+    return res.json({
+      success: true,
+      message: "Seller approved successfully",
+      data,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error?.message,
+    });
+  }
+};
 export const SellerController = {
   createMedicine,
   createSeller,
   updateMedicine,
   deleteMedicine,
   getSellerOrders,
-  updateSellerOrderStatus
+  updateSellerOrderStatus,
+  approveSeller
 };

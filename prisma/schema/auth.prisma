@@ -23,6 +23,8 @@ model User {
   cart               Cart?
   orderItemsAsSeller OrderItem[]    @relation("SellerOrderItems")
 
+   approvedSellers SellerProfile[] @relation("SellerApprovedBy")
+
   @@index([role])
   @@index([isBanned])
   @@map("user")

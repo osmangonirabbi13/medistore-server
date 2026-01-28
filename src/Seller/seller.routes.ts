@@ -10,6 +10,10 @@ router.patch("/orders/:id" , auth('SELLER') , SellerController.updateSellerOrder
 
 router.post("/become-seller", auth(), SellerController.createSeller);
 
+//admin
+
+router.get("/admin/sellers", auth(), SellerController.approveSeller );
+
 router.post("/medicines", auth("SELLER"), SellerController.createMedicine);
 router.put("/medicines/:id", auth("SELLER"), SellerController.updateMedicine);
 router.delete("/medicines/:id", auth("SELLER"), SellerController.deleteMedicine);

@@ -9,6 +9,9 @@ model SellerProfile {
   status        SellerRequestStatus @default(PENDING)
   approvedAt    DateTime?
 
+    approvedById  String?
+  approvedBy    User?        @relation("SellerApprovedBy", fields: [approvedById], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

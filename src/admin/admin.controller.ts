@@ -104,10 +104,13 @@ const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
+
+
 export const adminController = {
   getAllUsers,
   updateUserBanStatus,
   getAdminStats,
   getOrderDetails,
-  getAllOrders
+  getAllOrders,
+  
 };
