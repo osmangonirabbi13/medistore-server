@@ -7,6 +7,7 @@ import { categoryRouter } from "./Category/category.routes";
 import { productRoute } from "./Product/product.routes";
 import { orderRouter } from "./order/order.routes";
 import { adminRoute } from "./admin/admin.routes";
+import { profileRouter } from "./profile/profile.route";
 
 const app = express();
 
@@ -20,6 +21,8 @@ app.use(
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
+
+app.use("/api/profile" , profileRouter)
 
 app.use("/api/admin" , adminRoute)
 

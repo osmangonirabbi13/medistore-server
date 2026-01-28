@@ -9,7 +9,7 @@ type IOptionsResult = {
   page: number;
   limit: number;
   skip: number;
-  sortBy: string;
+  sortBy?: string;
   sortOrder: "asc" | "desc";
 };
 

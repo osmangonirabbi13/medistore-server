@@ -1,3 +1,4 @@
+import paginationSortingHelper from "../helpers/paginationSortingHelper";
 import { prisma } from "../lib/prisma";
 
 const getAllUsers = async () => {
@@ -80,9 +81,79 @@ const getStats = async () =>{
     };
   }
 
+const getOrderDetails = async( orderId : string) =>{
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        customer: {
+          select: { id: true, name: true, email: true },
+        },
+        items: true, 
+      },
+    });
+
+    if (!order) throw new Error("Order not found");
+
+    return order;
+}
+
+const getAllOrders = async (query: any) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationSortingHelper(query);
+
+  const where: any = {};
+
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  if (query.search) {
+    where.OR = [
+      { id: { contains: query.search, mode: "insensitive" } },
+      { shippingName: { contains: query.search, mode: "insensitive" } },
+      { shippingPhone: { contains: query.search, mode: "insensitive" } },
+    ];
+  }
+
+  
+  const allowedSortFields = ["placedAt", "updatedAt", "total", "status"];
+
+  const finalSortBy =
+    sortBy && allowedSortFields.includes(String(sortBy))
+      ? String(sortBy)
+      : "placedAt"; 
+
+  const [total, orders] = await Promise.all([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { [finalSortBy]: sortOrder },
+      include: {
+        customer: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: orders,
+  };
+};
+
 
 export const adminService = {
     getAllUsers,
     updateUserStatus,
-    getStats
+    getStats,
+    getOrderDetails,
+    getAllOrders
 }

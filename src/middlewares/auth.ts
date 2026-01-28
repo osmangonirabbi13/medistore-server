@@ -3,6 +3,12 @@ import { auth as betterAuth } from "../lib/auth";
 import { prisma } from "../lib/prisma";
 import { Role } from "../../generated/prisma/enums";
 
+export enum UserRole {
+  SELLER = "SELLER",
+  ADMIN = "ADMIN",
+  CUSTOMER = "CUSTOMER",
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -24,8 +30,6 @@ const auth = (...roles: Role[]) => {
         headers: req.headers as any,
       });
 
-   
-
       if (!session) {
         return res.status(401).json({
           success: false,
@@ -43,8 +47,6 @@ const auth = (...roles: Role[]) => {
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
       });
-
-      
 
       if (!user) {
         return res.status(404).json({
@@ -77,7 +79,7 @@ const auth = (...roles: Role[]) => {
 
       next();
     } catch (err) {
-      next(err) ;
+      next(err);
     }
   };
 };
