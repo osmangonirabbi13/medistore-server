@@ -9,7 +9,7 @@ export type CheckoutPayload = {
   shippingCity: string;
   shippingPostalCode?: string;
   shippingCountry?: string;
-  paymentMethod?: "COD" ;
+  paymentMethod?: "COD";
 };
 
 const getMyCart = async (userId: string) => {
@@ -102,7 +102,6 @@ const updateQuantity = async (
 };
 
 const checkoutFromCart = async (userId: string, payload: CheckoutPayload) => {
-
   const cart = await prisma.cart.findUnique({
     where: { userId },
     include: {
@@ -114,7 +113,6 @@ const checkoutFromCart = async (userId: string, payload: CheckoutPayload) => {
     throw new Error("Cart is empty");
   }
 
- 
   let subtotal = new Prisma.Decimal(0);
 
   const orderItems = cart.items.map((ci) => {
@@ -174,27 +172,62 @@ const checkoutFromCart = async (userId: string, payload: CheckoutPayload) => {
   return order;
 };
 
-const getOrderDetails = async(userId: string, orderId: string)=>{
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        items: {
-          include: {
-            medicine: true,
-          },
+const getOrderDetails = async (userId: string, orderId: string) => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          medicine: true,
         },
       },
-    });
+    },
+  });
 
-    if (!order) throw new Error("Order not found");
+  if (!order) throw new Error("Order not found");
 
-   
-    if (order.customerId !== userId) throw new Error("Forbidden");
+  if (order.customerId !== userId) throw new Error("Forbidden");
 
-    return order;
-}
+  return order;
+};
 
+const removeFromCart = async (userId: string, medicineId: string) => {
+  const cart = await prisma.cart.findUnique({
+    where: { userId },
+  });
 
+  if (!cart) {
+    throw new Error("Cart not found");
+  }
+
+  const item = await prisma.cartItem.findUnique({
+    where: {
+      cartId_medicineId: { cartId: cart.id, medicineId },
+    },
+  });
+
+  if (!item) {
+    throw new Error("Item not found in cart");
+  }
+
+  await prisma.cartItem.delete({
+    where: {
+      cartId_medicineId: { cartId: cart.id, medicineId },
+    },
+  });
+
+  return item;
+};
+
+const getMyOrders = async (userId: string) => {
+  const orders = await prisma.order.findMany({
+    where: { customerId: userId },
+    orderBy: { placedAt: "desc" },
+    include: { items: true },
+  });
+
+  return orders;
+};
 
 export const orderService = {
   getMyCart,
@@ -202,5 +235,6 @@ export const orderService = {
   updateQuantity,
   checkoutFromCart,
   getOrderDetails,
-  
+  removeFromCart,
+  getMyOrders,
 };

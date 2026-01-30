@@ -4,12 +4,15 @@ import auth from "../middlewares/auth";
 
 const router = Router();
 
-router.get("/cart", auth(), orderController.getMyCart);
+router.get("/cart", auth("CUSTOMER"), orderController.getMyCart);
 
 router.post("/", auth(), orderController.addToCart);
-router.patch("/:id", auth(), orderController.updateCartQuantity);
-router.post("/checkout", auth(), orderController.checkout);
+router.patch("/:id", auth("CUSTOMER"), orderController.updateCartQuantity);
+router.post("/checkout", auth("CUSTOMER"), orderController.checkout);
 
-router.get("/:id" ,auth(), orderController.getOrderDetails)
+router.get("/my-orders", auth(), orderController.getMyOrders);
+
+router.get("/:id", auth(), orderController.getOrderDetails);
+router.delete("/:id", auth(), orderController.removeFromCart);
 
 export const orderRouter: Router = router;

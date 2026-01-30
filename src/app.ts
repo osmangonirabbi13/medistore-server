@@ -22,9 +22,9 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
 
-app.use("/api/profile" , profileRouter)
+app.use("/api/profile", profileRouter);
 
-app.use("/api/admin" , adminRoute)
+app.use("/api/admin", adminRoute);
 
 app.use("/api/medicines", productRoute);
 

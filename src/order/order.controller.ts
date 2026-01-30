@@ -147,20 +147,69 @@ const getOrderDetails = async (req: Request, res: Response) => {
   } catch (err: any) {
     const msg = err.message || "Failed to fetch order details";
     const status =
-      msg === "Order not found" ? 404 :
-      msg === "Forbidden" ? 403 :
-      400;
+      msg === "Order not found" ? 404 : msg === "Forbidden" ? 403 : 400;
 
     return res.status(status).json({ success: false, message: msg });
   }
 };
 
+const removeFromCart = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
 
+    const { medicineId } = req.body;
+    if (!medicineId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "medicineId is required" });
+    }
+
+    const item = await orderService.removeFromCart(userId, medicineId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Removed from cart",
+      data: item,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Remove from cart failed",
+    });
+  }
+};
+
+const getMyOrders = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const orders = await orderService.getMyOrders(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders fetched",
+      data: orders,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to fetch orders",
+    });
+  }
+};
 
 export const orderController = {
   getMyCart,
   addToCart,
   updateCartQuantity,
   checkout,
-  getOrderDetails
+  getOrderDetails,
+  removeFromCart,
+  getMyOrders,
 };

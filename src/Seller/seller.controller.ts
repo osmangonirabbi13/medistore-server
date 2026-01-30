@@ -205,6 +205,37 @@ const approveSeller = async (req: Request, res: Response) => {
     });
   }
 };
+
+const getAllMyMedicine = async (req:Request , res : Response) =>{
+  try {
+     const sellerId =
+      (req as any)?.user?.id ||
+      (req as any)?.auth?.user?.id ||
+      (req as any)?.session?.user?.id;
+
+    if (!sellerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const medicines = await ServiceController.getAllMyMedicine(sellerId);
+
+    return res.status(200).json({
+      success: true,
+      message: "My medicines fetched successfully",
+      data: medicines,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error?.message,
+    });
+  }
+}
+
 export const SellerController = {
   createMedicine,
   createSeller,
@@ -212,5 +243,6 @@ export const SellerController = {
   deleteMedicine,
   getSellerOrders,
   updateSellerOrderStatus,
-  approveSeller
+  approveSeller,
+  getAllMyMedicine
 };

@@ -97,7 +97,23 @@ const getSellerOrders = async (sellerId: string) => {
   const items = await prisma.orderItem.findMany({
     where: { sellerId },
     include: {
-      order: true,
+      medicine: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          imageUrl: true,
+        },
+      },
+      order: {
+        select: {
+          id: true,
+          placedAt: true,
+          customer: {
+            select: { id: true, name: true, email: true, phone: true },
+          },
+        },
+      },
     },
     orderBy: {
       order: { placedAt: "desc" },
@@ -112,33 +128,64 @@ const updateSellerOrderStatus = async (
   orderItemId: string,
   status: OrderStatus,
 ) => {
-  const item = await prisma.orderItem.findUnique({
-    where: { id: orderItemId },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const item = await tx.orderItem.findUnique({
+      where: { id: orderItemId },
+      select: { id: true, sellerId: true, orderId: true },
+    });
 
-  if (!item) throw new Error("Order item not found");
+    if (!item) throw new Error("Order item not found");
+    if (item.sellerId !== sellerId) throw new Error("Forbidden");
 
-  if (item.sellerId !== sellerId) throw new Error("Forbidden");
+    
+    const updated = await tx.orderItem.update({
+      where: { id: orderItemId },
+      data: { status },
+    });
 
-  const updated = await prisma.orderItem.update({
-    where: { id: orderItemId },
-    data: { status },
-  });
+   
+    const all = await tx.orderItem.findMany({
+      where: { orderId: item.orderId },
+      select: { status: true },
+    });
 
-  return updated;
-};
+    const unique = [...new Set(all.map((x) => x.status))];
 
-const approveSeller = async(sellerUserId: string, adminId: string) =>{
-  return prisma.sellerProfile.update({
-      where: { userId: sellerUserId },
+    await tx.order.update({
+      where: { id: item.orderId },
       data: {
-        status: "APPROVED",
-        approvedById: adminId,
-        approvedAt: new Date(),
-        
+        status: (unique.length === 1 ? unique[0] : "PROCESSING") as OrderStatus,
       },
     });
-}
+
+    return updated;
+  });
+};
+
+const approveSeller = async (sellerUserId: string, adminId: string) => {
+  return prisma.sellerProfile.update({
+    where: { userId: sellerUserId },
+    data: {
+      status: "APPROVED",
+      approvedById: adminId,
+      approvedAt: new Date(),
+    },
+  });
+};
+
+const getAllMyMedicine = async (sellerId: string) => {
+  const medicines = await prisma.medicine.findMany({
+    where: { sellerId },
+    include: {
+      category: {
+        select: { name: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return medicines;
+};
 
 export const ServiceController = {
   createMedicine,
@@ -147,5 +194,6 @@ export const ServiceController = {
   deleteMedicine,
   getSellerOrders,
   updateSellerOrderStatus,
-  approveSeller
+  approveSeller,
+  getAllMyMedicine,
 };
