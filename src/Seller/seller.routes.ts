@@ -15,7 +15,10 @@ router.post("/become-seller", auth(), SellerController.createSeller);
 
 //admin
 
-router.get("/admin/sellers", auth(), SellerController.approveSeller);
+router.patch("/:userId/approve", auth("ADMIN"), SellerController.approveSeller);
+
+router.get("/requests", auth("ADMIN"), SellerController.getSellerRequest)
+
 
 router.get("/my-medicines", auth("SELLER"), SellerController.getAllMyMedicine);
 

@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { ServiceController } from "./seller.service";
 import { UserRole } from "../middlewares/auth";
+import { prisma } from "../lib/prisma";
+import { SellerRequestStatus } from "../../generated/prisma/enums";
 
 export const createSeller = async (req: Request, res: Response) => {
   try {
@@ -236,6 +238,34 @@ const getAllMyMedicine = async (req:Request , res : Response) =>{
   }
 }
 
+
+const getSellerRequest  = async (req:Request , res : Response)=>{
+  try {
+      const statusParam = (req.query.status as string) || "PENDING";
+
+     
+      const status = (SellerRequestStatus as any)[statusParam]
+        ? (statusParam as SellerRequestStatus)
+        : SellerRequestStatus.PENDING;
+
+      const data = await ServiceController.getSellerRequests({ status });
+
+      return res.status(200).json({
+        success: true,
+        message: "Seller requests fetched",
+        data,
+      });
+    } catch (e: any) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch seller requests",
+        error: e?.message,
+      });
+    }
+  }
+
+
+
 export const SellerController = {
   createMedicine,
   createSeller,
@@ -244,5 +274,6 @@ export const SellerController = {
   getSellerOrders,
   updateSellerOrderStatus,
   approveSeller,
-  getAllMyMedicine
+  getAllMyMedicine,
+  getSellerRequest
 };

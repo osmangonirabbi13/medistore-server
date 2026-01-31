@@ -1,7 +1,13 @@
-import { Medicine, OrderStatus, Prisma } from "../../generated/prisma/client";
+import { Medicine, OrderStatus, Prisma, Role, SellerRequestStatus } from "../../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 
+
 type UpdateMedicinePayload = Prisma.MedicineUpdateInput;
+
+type GetSellerRequestsPayload = {
+  status?: SellerRequestStatus;
+};
+
 
 const createSeller = async (userId: string, pharmacyName: string) => {
   console.log(userId);
@@ -163,13 +169,23 @@ const updateSellerOrderStatus = async (
 };
 
 const approveSeller = async (sellerUserId: string, adminId: string) => {
-  return prisma.sellerProfile.update({
-    where: { userId: sellerUserId },
-    data: {
-      status: "APPROVED",
-      approvedById: adminId,
-      approvedAt: new Date(),
-    },
+  return prisma.$transaction(async (tx) => {
+    const profile = await tx.sellerProfile.update({
+      where: { userId: sellerUserId },
+      data: {
+        status: SellerRequestStatus.APPROVED,
+        approvedById: adminId,
+        approvedAt: new Date(),
+      },
+    });
+
+   
+    await tx.user.update({
+      where: { id: sellerUserId },
+      data: { role: Role.SELLER },
+    });
+
+    return profile;
   });
 };
 
@@ -187,6 +203,32 @@ const getAllMyMedicine = async (sellerId: string) => {
   return medicines;
 };
 
+const getSellerRequests = async (payload: GetSellerRequestsPayload)=>{
+  const status = payload.status ?? SellerRequestStatus.PENDING;
+
+    const data = await prisma.sellerProfile.findMany({
+      where: { status },
+      orderBy: { createdAt: "desc" },
+      select: {
+        userId: true,
+        pharmacyName: true,
+        status: true,
+        createdAt: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return data;
+  }
+
+
+
+
 export const ServiceController = {
   createMedicine,
   createSeller,
@@ -196,4 +238,5 @@ export const ServiceController = {
   updateSellerOrderStatus,
   approveSeller,
   getAllMyMedicine,
+  getSellerRequests
 };
