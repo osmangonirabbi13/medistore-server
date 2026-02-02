@@ -26,26 +26,29 @@ declare global {
 const auth = (...roles: Role[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const session = await betterAuth.api.getSession({
+      const sessionData = await betterAuth.api.getSession({
         headers: req.headers as any,
       });
 
-      if (!session) {
+  
+      const userId = sessionData?.session?.userId || sessionData?.user?.id || null;
+
+      if (!userId) {
         return res.status(401).json({
           success: false,
           message: "You are not authorized!",
         });
       }
+      const emailVerified = !!sessionData?.user?.emailVerified;
 
-      if (!session.user.emailVerified) {
+      if (!emailVerified) {
         return res.status(403).json({
           success: false,
           message: "Email verification required.",
         });
       }
-
       const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: userId },
       });
 
       if (!user) {
@@ -79,7 +82,12 @@ const auth = (...roles: Role[]) => {
 
       next();
     } catch (err) {
-      next(err);
+  
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+        error: (err as any)?.message,
+      });
     }
   };
 };

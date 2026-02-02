@@ -11,9 +11,6 @@ import express from "express";
 // src/Seller/seller.routes.ts
 import { Router } from "express";
 
-// src/lib/prisma.ts
-import { PrismaPg } from "@prisma/adapter-pg";
-
 // generated/prisma/client.ts
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -282,11 +279,24 @@ var NullsOrder = {
 };
 var defineExtension = runtime2.Extensions.defineExtension;
 
+// generated/prisma/enums.ts
+var Role = {
+  CUSTOMER: "CUSTOMER",
+  SELLER: "SELLER",
+  ADMIN: "ADMIN"
+};
+var SellerRequestStatus = {
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED"
+};
+
 // generated/prisma/client.ts
 globalThis["__dirname"] = path.dirname(fileURLToPath(import.meta.url));
 var PrismaClient = getPrismaClientClass();
 
 // src/lib/prisma.ts
+import { PrismaPg } from "@prisma/adapter-pg";
 var connectionString = `${process.env.DATABASE_URL}`;
 var adapter = new PrismaPg({ connectionString });
 var prisma = new PrismaClient({ adapter });
@@ -362,7 +372,23 @@ var getSellerOrders = async (sellerId) => {
   const items = await prisma.orderItem.findMany({
     where: { sellerId },
     include: {
-      order: true
+      medicine: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          imageUrl: true
+        }
+      },
+      order: {
+        select: {
+          id: true,
+          placedAt: true,
+          customer: {
+            select: { id: true, name: true, email: true, phone: true }
+          }
+        }
+      }
     },
     orderBy: {
       order: { placedAt: "desc" }
@@ -371,26 +397,79 @@ var getSellerOrders = async (sellerId) => {
   return items;
 };
 var updateSellerOrderStatus = async (sellerId, orderItemId, status) => {
-  const item = await prisma.orderItem.findUnique({
-    where: { id: orderItemId }
+  return await prisma.$transaction(async (tx) => {
+    const item = await tx.orderItem.findUnique({
+      where: { id: orderItemId },
+      select: { id: true, sellerId: true, orderId: true }
+    });
+    if (!item) throw new Error("Order item not found");
+    if (item.sellerId !== sellerId) throw new Error("Forbidden");
+    const updated = await tx.orderItem.update({
+      where: { id: orderItemId },
+      data: { status }
+    });
+    const all = await tx.orderItem.findMany({
+      where: { orderId: item.orderId },
+      select: { status: true }
+    });
+    const unique = [...new Set(all.map((x) => x.status))];
+    await tx.order.update({
+      where: { id: item.orderId },
+      data: {
+        status: unique.length === 1 ? unique[0] : "PROCESSING"
+      }
+    });
+    return updated;
   });
-  if (!item) throw new Error("Order item not found");
-  if (item.sellerId !== sellerId) throw new Error("Forbidden");
-  const updated = await prisma.orderItem.update({
-    where: { id: orderItemId },
-    data: { status }
-  });
-  return updated;
 };
 var approveSeller = async (sellerUserId, adminId) => {
-  return prisma.sellerProfile.update({
-    where: { userId: sellerUserId },
-    data: {
-      status: "APPROVED",
-      approvedById: adminId,
-      approvedAt: /* @__PURE__ */ new Date()
+  return prisma.$transaction(async (tx) => {
+    const profile = await tx.sellerProfile.update({
+      where: { userId: sellerUserId },
+      data: {
+        status: SellerRequestStatus.APPROVED,
+        approvedById: adminId,
+        approvedAt: /* @__PURE__ */ new Date()
+      }
+    });
+    await tx.user.update({
+      where: { id: sellerUserId },
+      data: { role: Role.SELLER }
+    });
+    return profile;
+  });
+};
+var getAllMyMedicine = async (sellerId) => {
+  const medicines = await prisma.medicine.findMany({
+    where: { sellerId },
+    include: {
+      category: {
+        select: { name: true }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+  return medicines;
+};
+var getSellerRequests = async (payload) => {
+  const status = payload.status ?? SellerRequestStatus.PENDING;
+  const data = await prisma.sellerProfile.findMany({
+    where: { status },
+    orderBy: { createdAt: "desc" },
+    select: {
+      userId: true,
+      pharmacyName: true,
+      status: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true
+        }
+      }
     }
   });
+  return data;
 };
 var ServiceController = {
   createMedicine,
@@ -399,7 +478,9 @@ var ServiceController = {
   deleteMedicine,
   getSellerOrders,
   updateSellerOrderStatus,
-  approveSeller
+  approveSeller,
+  getAllMyMedicine,
+  getSellerRequests
 };
 
 // src/lib/auth.ts
@@ -410,7 +491,6 @@ var transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
   secure: false,
-  // Use true for port 465, false for port 587
   auth: {
     user: process.env.APP_EMAIL,
     pass: process.env.APP_PASS
@@ -420,7 +500,14 @@ var auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql"
   }),
+  baseURL: process.env.BETTER_AUTH_URL,
   trustedOrigins: [process.env.APP_URL],
+  advanced: {
+    defaultCookieAttributes: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    }
+  },
   user: {
     additionalFields: {
       phone: {
@@ -456,129 +543,29 @@ var auth = betterAuth({
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Email Verification</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #f4f6f8;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background-color: #ffffff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-
-    .header {
-      background-color: #0f172a;
-      color: #ffffff;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .header h1 {
-      margin: 0;
-      font-size: 22px;
-    }
-
-    .content {
-      padding: 30px;
-      color: #334155;
-      line-height: 1.6;
-    }
-
-    .content h2 {
-      margin-top: 0;
-      font-size: 20px;
-      color: #0f172a;
-    }
-
-    .button-wrapper {
-      text-align: center;
-      margin: 30px 0;
-    }
-
-    .verify-button {
-      background-color: #2563eb;
-      color: #ffffff !important;
-      padding: 14px 28px;
-      text-decoration: none;
-      font-weight: bold;
-      border-radius: 6px;
-      display: inline-block;
-    }
-
-    .verify-button:hover {
-      background-color: #1d4ed8;
-    }
-
-    .footer {
-      background-color: #f1f5f9;
-      padding: 20px;
-      text-align: center;
-      font-size: 13px;
-      color: #64748b;
-    }
-
-    .link {
-      word-break: break-all;
-      font-size: 13px;
-      color: #2563eb;
-    }
+    body { margin: 0; padding: 0; background-color: #f4f6f8; font-family: Arial, sans-serif; }
+    .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
+    .header { background-color: #0f172a; color: #ffffff; padding: 20px; text-align: center; }
+    .content { padding: 30px; color: #334155; line-height: 1.6; }
+    .verify-button { background-color: #2563eb; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; }
+    .footer { background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 13px; color: #64748b; }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <h1>Medi Store</h1>
-    </div>
-
-    <!-- Content -->
+    <div class="header"><h1>Medi Store</h1></div>
     <div class="content">
       <h2>Verify Your Email Address</h2>
-      <p>
-        Hello ${user.name} <br /><br />
-        Thank you for registering on <strong>Medi Store</strong>.
-        Please confirm your email address to activate your account.
-      </p>
-
-      <div class="button-wrapper">
-        <a href="${verificationUrl}" class="verify-button">
-          Verify Email
-        </a>
+      <p>Hello ${user.name}, please confirm your email address.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${verificationUrl}" class="verify-button">Verify Email</a>
       </div>
-
-      <p>
-        If the button doesn\u2019t work, copy and paste the link below into your browser:
-      </p>
-
-      <p class="link">
-        ${url}
-      </p>
-
-      <p>
-        This verification link will expire soon for security reasons.
-        If you did not create an account, you can safely ignore this email.
-      </p>
-
-      <p>
-        Regards, <br />
-        <strong>Medi Store Team</strong>
-      </p>
+      <p>Or verify using this link: <br/> ${url}</p>
     </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      \xA9 2025 Medi Store. All rights reserved.
-    </div>
+    <div class="footer">\xA9 2025 Medi Store. All rights reserved.</div>
   </div>
 </body>
-</html>
-`
+</html>`
         });
         console.log("Message sent:", info.messageId);
       } catch (err) {
@@ -601,23 +588,25 @@ var auth = betterAuth({
 var auth2 = (...roles) => {
   return async (req, res, next) => {
     try {
-      const session = await auth.api.getSession({
+      const sessionData = await auth.api.getSession({
         headers: req.headers
       });
-      if (!session) {
+      const userId = sessionData?.session?.userId || sessionData?.user?.id || null;
+      if (!userId) {
         return res.status(401).json({
           success: false,
           message: "You are not authorized!"
         });
       }
-      if (!session.user.emailVerified) {
+      const emailVerified = !!sessionData?.user?.emailVerified;
+      if (!emailVerified) {
         return res.status(403).json({
           success: false,
           message: "Email verification required."
         });
       }
       const user = await prisma.user.findUnique({
-        where: { id: session.user.id }
+        where: { id: userId }
       });
       if (!user) {
         return res.status(404).json({
@@ -646,7 +635,11 @@ var auth2 = (...roles) => {
       }
       next();
     } catch (err) {
-      next(err);
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+        error: err?.message
+      });
     }
   };
 };
@@ -823,6 +816,47 @@ var approveSeller2 = async (req, res) => {
     });
   }
 };
+var getAllMyMedicine2 = async (req, res) => {
+  try {
+    const sellerId = req?.user?.id || req?.auth?.user?.id || req?.session?.user?.id;
+    if (!sellerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+    const medicines = await ServiceController.getAllMyMedicine(sellerId);
+    return res.status(200).json({
+      success: true,
+      message: "My medicines fetched successfully",
+      data: medicines
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error?.message
+    });
+  }
+};
+var getSellerRequest = async (req, res) => {
+  try {
+    const statusParam = req.query.status || "PENDING";
+    const status = SellerRequestStatus[statusParam] ? statusParam : SellerRequestStatus.PENDING;
+    const data = await ServiceController.getSellerRequests({ status });
+    return res.status(200).json({
+      success: true,
+      message: "Seller requests fetched",
+      data
+    });
+  } catch (e) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch seller requests",
+      error: e?.message
+    });
+  }
+};
 var SellerController = {
   createMedicine: createMedicine2,
   createSeller: createSeller2,
@@ -830,18 +864,30 @@ var SellerController = {
   deleteMedicine: deleteMedicine2,
   getSellerOrders: getSellerOrders2,
   updateSellerOrderStatus: updateSellerOrderStatus2,
-  approveSeller: approveSeller2
+  approveSeller: approveSeller2,
+  getAllMyMedicine: getAllMyMedicine2,
+  getSellerRequest
 };
 
 // src/Seller/seller.routes.ts
 var router = Router();
 router.get("/orders", auth_default("SELLER"), SellerController.getSellerOrders);
-router.patch("/orders/:id", auth_default("SELLER"), SellerController.updateSellerOrderStatus);
+router.patch(
+  "/orders/:id",
+  auth_default("SELLER"),
+  SellerController.updateSellerOrderStatus
+);
 router.post("/become-seller", auth_default(), SellerController.createSeller);
-router.get("/admin/sellers", auth_default(), SellerController.approveSeller);
+router.patch("/:userId/approve", auth_default("ADMIN"), SellerController.approveSeller);
+router.get("/requests", auth_default("ADMIN"), SellerController.getSellerRequest);
+router.get("/my-medicines", auth_default("SELLER"), SellerController.getAllMyMedicine);
 router.post("/medicines", auth_default("SELLER"), SellerController.createMedicine);
 router.put("/medicines/:id", auth_default("SELLER"), SellerController.updateMedicine);
-router.delete("/medicines/:id", auth_default("SELLER"), SellerController.deleteMedicine);
+router.delete(
+  "/medicines/:id",
+  auth_default("SELLER"),
+  SellerController.deleteMedicine
+);
 var sellerRouter = router;
 
 // src/app.ts
@@ -1438,11 +1484,15 @@ var removeFromCart2 = async (req, res) => {
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
-    const { medicineId } = req.body;
+    const { id } = req.params;
+    const medicineId = id;
     if (!medicineId) {
       return res.status(400).json({ success: false, message: "medicineId is required" });
     }
-    const item = await orderService.removeFromCart(userId, medicineId);
+    const item = await orderService.removeFromCart(
+      userId,
+      medicineId
+    );
     return res.status(200).json({
       success: true,
       message: "Removed from cart",
@@ -1487,7 +1537,7 @@ var orderController = {
 // src/order/order.routes.ts
 var router4 = Router4();
 router4.get("/cart", auth_default("CUSTOMER"), orderController.getMyCart);
-router4.post("/", auth_default(), orderController.addToCart);
+router4.post("/", auth_default("CUSTOMER"), orderController.addToCart);
 router4.patch("/:id", auth_default("CUSTOMER"), orderController.updateCartQuantity);
 router4.post("/checkout", auth_default("CUSTOMER"), orderController.checkout);
 router4.get("/my-orders", auth_default(), orderController.getMyOrders);
@@ -1725,10 +1775,10 @@ var adminController = {
 
 // src/admin/admin.routes.ts
 var router5 = Router5();
-router5.get("/users", adminController.getAllUsers);
-router5.get("/stats", adminController.getAdminStats);
-router5.get("/orders", adminController.getAllOrders);
-router5.get("/orders/:id", adminController.getOrderDetails);
+router5.get("/users", auth_default("ADMIN"), adminController.getAllUsers);
+router5.get("/stats", auth_default("ADMIN"), adminController.getAdminStats);
+router5.get("/orders", auth_default("ADMIN"), adminController.getAllOrders);
+router5.get("/orders/:id", auth_default("ADMIN"), adminController.getOrderDetails);
 router5.patch("/users/:id", auth_default("ADMIN"), adminController.updateUserBanStatus);
 var adminRoute = router5;
 
@@ -1823,8 +1873,16 @@ var profileController = {
 
 // src/profile/profile.route.ts
 var router6 = Router6();
-router6.get("/me", auth_default("ADMIN", "CUSTOMER", "SELLER"), profileController.getMyProfile);
-router6.patch("me", auth_default("ADMIN", "CUSTOMER", "SELLER"), profileController.updateMyProfile);
+router6.get(
+  "/me",
+  auth_default("ADMIN", "CUSTOMER", "SELLER"),
+  profileController.getMyProfile
+);
+router6.patch(
+  "/me",
+  auth_default("ADMIN", "CUSTOMER", "SELLER"),
+  profileController.updateMyProfile
+);
 var profileRouter = router6;
 
 // src/app.ts

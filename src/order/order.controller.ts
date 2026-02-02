@@ -160,14 +160,20 @@ const removeFromCart = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const { medicineId } = req.body;
+    const { id } = req.params;
+
+    const medicineId = id;
+
     if (!medicineId) {
       return res
         .status(400)
         .json({ success: false, message: "medicineId is required" });
     }
 
-    const item = await orderService.removeFromCart(userId, medicineId);
+    const item = await orderService.removeFromCart(
+      userId,
+      medicineId as string,
+    );
 
     return res.status(200).json({
       success: true,

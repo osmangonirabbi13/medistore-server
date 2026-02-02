@@ -6,7 +6,7 @@ const router = Router();
 
 router.get("/cart", auth("CUSTOMER"), orderController.getMyCart);
 
-router.post("/", auth(), orderController.addToCart);
+router.post("/", auth("CUSTOMER"), orderController.addToCart);
 router.patch("/:id", auth("CUSTOMER"), orderController.updateCartQuantity);
 router.post("/checkout", auth("CUSTOMER"), orderController.checkout);
 
